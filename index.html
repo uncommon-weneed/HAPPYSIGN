@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>수어 단어 무한 셔플 & 오답노트 암기장</title>
+  <style>
+    :root {
+      --img-scale: 1;
+    }
+
+    /* 푸터가 하단에 자연스럽게 배치되도록 세로 플렉스 구조로 설정 */
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      display: flex; 
+      flex-direction: column;
+      align-items: center; 
+      min-height: 100vh; 
+      background: #f1f5f9; 
+      margin: 0; 
+      padding: 20px 0 0 0; 
+      box-sizing: border-box; 
+    }
+    
+    .app-wrapper { 
+      display: flex; 
+      gap: 20px; 
+      width: 95%; 
+      max-width: 1180px; 
+      align-items: flex-start; 
+      margin-bottom: 30px; 
+    }
+
+    /* 사이드바 */
+    .sidebar { width: 280px; background: #fff; padding: 18px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); max-height: 88vh; display: flex; flex-direction: column; flex-shrink: 0; box-sizing: border-box; }
+    .sidebar-header { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .sidebar-header span { font-size: 0.8rem; background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 10px; }
+    
+    /* 카테고리 선택 */
+    .category-box { background: #eff6ff; padding: 10px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #bfdbfe; display: flex; flex-direction: column; gap: 6px; }
+    .category-box label { font-size: 0.8rem; font-weight: 700; color: #1e40af; }
+    .select-cat { width: 100%; padding: 7px 8px; border-radius: 8px; border: 1.5px solid #3b82f6; background: #fff; font-size: 0.85rem; font-weight: 700; color: #1e293b; outline: none; cursor: pointer; }
+    .select-cat option:disabled { color: #94a3b8; background: #f1f5f9; }
+
+    .sidebar-controls { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; font-size: 0.85rem; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; }
+    .sidebar-controls input[type="text"] { padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-size: 0.85rem; width: 100%; box-sizing: border-box; }
+    .sidebar-controls input[type="text"]:focus { border-color: #6366f1; }
+    .sidebar-actions { display: flex; gap: 5px; }
+    .sidebar-actions button { flex: 1; padding: 6px 4px; font-size: 0.75rem; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; transition: 0.15s; }
+    .btn-select { background: #e2e8f0; color: #334155; }
+    .btn-select:hover { background: #cbd5e1; }
+    .btn-study-custom { background: #6366f1; color: #fff; flex: 1.2; }
+    .btn-study-custom:hover { background: #4f46e5; }
+    
+    .sidebar-opt-row { display: flex; justify-content: space-between; align-items: center; gap: 4px; font-size: 0.78rem; color: #475569; }
+    .toggle-hide-container { display: flex; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; }
+    .select-order { padding: 3px 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.75rem; outline: none; color: #334155; }
+
+    .sidebar-list { overflow-y: auto; flex: 1; padding-right: 4px; user-select: none; position: relative; }
+    .sidebar-item { padding: 6px 8px; border-radius: 8px; margin-bottom: 4px; font-size: 0.85rem; display: flex; align-items: center; background: #f8fafc; transition: all 0.15s ease; border: 1px solid transparent; }
+    .sidebar-item:hover { background: #e2e8f0; }
+    .sidebar-item.active { background: #e0e7ff; border-color: #6366f1; font-weight: 700; color: #4338ca; }
+    
+    .checkbox-wrap { padding: 4px 6px 4px 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .word-text { flex: 1; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 4px 0; transition: filter 0.2s, opacity 0.2s; }
+    .word-text.blurred { filter: blur(4.5px); opacity: 0.4; }
+    .eye-btn { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 6px; margin: 0; outline: none; transition: transform 0.1s; }
+    .eye-btn:hover { transform: scale(1.15); }
+    
+    .sidebar-badge { font-size: 0.65rem; padding: 3px 6px; border-radius: 5px; font-weight: bold; margin-left: 4px; flex-shrink: 0; cursor: pointer; transition: 0.15s; }
+    .sidebar-badge:hover { filter: brightness(0.92); transform: scale(1.05); }
+    .badge-none { background: #e2e8f0; color: #64748b; }
+    .badge-known { background: #dcfce7; color: #15803d; }
+    .badge-unknown { background: #fee2e2; color: #b91c1c; }
+    .badge-review { background: #fef3c7; color: #b45309; }
+
+    /* 모바일 높이 조절 바 */
+    .resizer-bar {
+      display: none;
+      width: 100%;
+      height: 22px;
+      cursor: row-resize;
+      user-select: none;
+      touch-action: none;
+      align-items: center;
+      justify-content: center;
+      margin: -4px 0;
+      z-index: 10;
+    }
+    .resizer-pill {
+      width: 54px;
+      height: 6px;
+      background: #94a3b8;
+      border-radius: 4px;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .resizer-bar:hover .resizer-pill,
+    .resizer-bar.dragging .resizer-pill {
+      background: #4f46e5;
+      transform: scaleY(1.3);
+    }
+
+    /* 메인 카드 */
+    .card-container { background: #fff; padding: 24px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); flex: 1; text-align: center; position: relative; min-width: 0; }
+    .mode-badge { display: inline-block; background: #e0e7ff; color: #4338ca; font-weight: 700; padding: 4px 12px; border-radius: 12px; font-size: 0.85rem; margin-bottom: 8px; }
+    .mode-badge.review { background: #fef3c7; color: #b45309; }
+    .mode-badge.custom { background: #dcfce7; color: #15803d; }
+    
+    .progress-bar { font-size: 0.95rem; font-weight: 600; color: #64748b; margin-bottom: 12px; }
+    
+    .stats-summary { display: flex; justify-content: space-around; background: #f8fafc; padding: 10px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; }
+    .stat-known { color: #16a34a; }
+    .stat-unknown { color: #dc2626; }
+    .stat-review { color: #d97706; }
+
+    /* 상단 제어바 */
+    .top-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; justify-content: center; }
+    .control-box { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.82rem; font-weight: 600; color: #475569; background: #f8fafc; padding: 7px 10px; border-radius: 10px; border: 1px solid #e2e8f0; }
+    
+    .timer-reveal-box { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .timer-reveal-box select { border: 1px solid #86efac; border-radius: 4px; outline: none; padding: 2px 4px; font-size: 0.8rem; background: #fff; }
+    
+    .timer-next-box { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .timer-next-box select { border: 1px solid #fca5a5; border-radius: 4px; outline: none; padding: 2px 4px; font-size: 0.8rem; background: #fff; }
+    
+    .timer-badge { display: inline-block; min-width: 38px; font-size: 0.85rem; font-weight: 800; padding: 1px 6px; border-radius: 4px; text-align: center; }
+    .badge-reveal-cd { background: #dcfce7; color: #15803d; }
+    .badge-next-cd { background: #fee2e2; color: #b91c1c; }
+
+    .order-box { background: #eff6ff; border-color: #bfdbfe; }
+    .btn-order-toggle { border: 1px solid #93c5fd; background: #fff; color: #1e40af; border-radius: 6px; padding: 3px 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: 0.15s; }
+    .btn-order-toggle.active { background: #3b82f6; color: #fff; border-color: #2563eb; }
+
+    .word-box { min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 700; color: #0f172a; margin-bottom: 15px; border: 2px dashed #cbd5e1; border-radius: 14px; padding: 18px; position: relative; word-break: keep-all; line-height: 1.5; }
+    .status-tag { position: absolute; top: 10px; right: 10px; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; font-weight: bold; }
+    .tag-known { background: #dcfce7; color: #15803d; }
+    .tag-unknown { background: #fee2e2; color: #b91c1c; }
+    .tag-review { background: #fef3c7; color: #b45309; }
+
+    .answer-container { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; width: 100%; text-align: left; }
+    .desc-text { font-size: 0.95rem; font-weight: 500; color: #334155; background: #f8fafc; padding: 14px; border-radius: 10px; box-sizing: border-box; line-height: 1.55; border: 1px solid #e2e8f0; }
+    
+    .img-container { display: flex; gap: 15px; justify-content: center; width: 100%; flex-wrap: wrap; margin-top: 10px; }
+    .img-box { width: calc(260px * var(--img-scale)); height: calc(195px * var(--img-scale)); max-width: 100%; background: #ffffff; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; padding: 6px; box-sizing: border-box; box-shadow: 0 3px 8px rgba(0,0,0,0.06); transition: width 0.2s ease, height 0.2s ease; }
+    .img-box img, .img-box video { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
+
+    /* 홈페이지 바로가기 링크 버튼 */
+    .dict-link-wrap { text-align: center; margin-top: 12px; }
+    .dict-link-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; background: #4f46e5; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 0.88rem; font-weight: 700; box-shadow: 0 3px 6px rgba(79, 70, 229, 0.25); transition: 0.15s ease; }
+    .dict-link-btn:hover { background: #4338ca; transform: translateY(-1px); }
+
+    .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+    button { padding: 10px 4px; font-size: 0.85rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; transition: all 0.15s ease; }
+    button:hover { opacity: 0.9; transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .btn-mark-known { background: #22c55e; color: white; }
+    .btn-mark-unknown { background: #ef4444; color: white; }
+    .btn-mark-review { background: #f59e0b; color: white; }
+
+    .btn-prev { background: #64748b; color: white; }
+    .btn-reveal { background: #6366f1; color: white; }
+    .btn-next { background: #0ea5e9; color: white; }
+
+    .btn-start { background: #2563eb; color: white; width: 100%; margin-top: 6px; padding: 11px; font-size: 0.95rem; }
+    .btn-full-mode { background: #3b82f6; color: white; width: 100%; margin-top: 6px; padding: 11px; font-size: 0.9rem; }
+    .btn-review-mode { background: #8b5cf6; color: white; width: 100%; margin-top: 6px; padding: 11px; font-size: 0.9rem; }
+    .btn-pause { background: #475569; color: white; width: 100%; margin-top: 6px; padding: 10px; font-size: 0.9rem; }
+    .btn-reset { background: #94a3b8; color: white; width: 100%; margin-top: 6px; }
+
+    .shortcut-info { margin-top: 15px; font-size: 0.78rem; color: #64748b; background: #f8fafc; padding: 10px; border-radius: 8px; text-align: left; line-height: 1.5; }
+    .shortcut-info b { color: #334155; }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: #fff; padding: 24px; border-radius: 20px; width: 90%; max-width: 440px; text-align: center; box-shadow: 0 20px 25px rgba(0,0,0,0.15); }
+    .modal-content h2 { margin-top: 0; color: #0f172a; font-size: 1.25rem; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 12px; margin: 15px 0; text-align: left; font-size: 0.9rem; }
+    .modal-unchecked-box { background: #fee2e2; border-radius: 8px; padding: 10px; max-height: 100px; overflow-y: auto; text-align: left; font-size: 0.82rem; color: #991b1b; margin-bottom: 15px; word-break: break-all; line-height: 1.4; }
+    .btn-resume { background: #6366f1; color: white; width: 100%; padding: 12px; font-size: 0.95rem; }
+
+    /* 출처 표기 반응형 푸터 스타일 */
+    .source-footer {
+      width: 100%;
+      margin-top: auto;
+      padding: 20px 16px;
+      background-color: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      box-sizing: border-box;
+    }
+
+    .footer-container {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 10px;
+    }
+
+    .source-text {
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: #64748b;
+      word-break: keep-all;
+    }
+
+    .source-text strong {
+      color: #1e293b;
+      font-weight: 600;
+    }
+
+    .badge-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .kogl-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      background-color: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+      font-size: 0.72rem;
+      font-weight: 600;
+      border-radius: 6px;
+    }
+
+    .source-link {
+      font-size: 0.78rem;
+      color: #4f46e5;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.15s ease-in-out;
+    }
+
+    .source-link:hover {
+      text-decoration: underline;
+      color: #3730a3;
+    }
+
+    @media (min-width: 769px) {
+      .sidebar { height: auto !important; max-height: 88vh; }
+      .resizer-bar { display: none !important; }
+      .footer-container {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: left;
+      }
+      .source-text {
+        max-width: 75%;
+      }
+      .badge-wrapper {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 5px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .app-wrapper { flex-direction: column; align-items: center; gap: 6px; margin-bottom: 20px; }
+      .sidebar { width: 100%; height: 260px; max-height: none; }
+      .resizer-bar { display: flex; }
+      .top-controls { flex-direction: column; align-items: stretch; }
+      .control-box { justify-content: space-between; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- 좌측 사이드바 -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        단어 목록 사전
+        <span>미체크: <b id="sideUncheckedCnt">0</b>개</span>
+      </div>
+      
+      <div class="category-box">
+        <label for="catSelect">📂 학습 과목(카테고리) 선택</label>
+        <select id="catSelect" class="select-cat" onchange="changeCategory(this.value)"></select>
+      </div>
+
+      <div class="sidebar-controls">
+        <input type="text" id="searchInput" placeholder="🔍 현재 과 단어 검색..." oninput="renderSidebar()">
+        
+        <div class="sidebar-opt-row">
+          <label class="toggle-hide-container">
+            <input type="checkbox" id="globalHideCheck" onchange="toggleGlobalHide(this.checked)"> 
+            🙈 전체 마스킹
+          </label>
+
+          <div>
+            <select id="sidebarOrder" class="select-order" onchange="renderSidebar()">
+              <option value="num">번호순 정렬</option>
+              <option value="study" selected>학습순(셔플)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="sidebar-actions">
+          <button class="btn-select" onclick="selectAllFiltered()">전체선택</button>
+          <button class="btn-select" onclick="deselectAllFiltered()">선택해제</button>
+          <button class="btn-study-custom" onclick="studySelected()">✨ 선택 학습</button>
+        </div>
+      </div>
+
+      <div class="sidebar-list" id="sidebarList"></div>
+    </div>
+
+    <!-- 모바일 전용 높이 조절 바 -->
+    <div class="resizer-bar" id="dragResizer" title="상하로 드래그하여 단어 목록 높이 조절">
+      <div class="resizer-pill"></div>
+    </div>
+
+    <!-- 우측 학습 카드 -->
+    <div class="card-container">
+      <div class="mode-badge" id="modeName">전체 학습 모드</div>
+      <div class="progress-bar" id="progress">단어 0 / 0</div>
+      
+      <div class="stats-summary">
+        <span class="stat-known">아는 단어: <b id="cntKnown">0</b></span>
+        <span class="stat-unknown">모르는 단어: <b id="cntUnknown">0</b></span>
+        <span class="stat-review">재확인: <b id="cntReview">0</b></span>
+      </div>
+
+      <!-- 상단 분리형 제어바 -->
+      <div class="top-controls">
+        <div class="control-box timer-reveal-box">
+          <label style="cursor:pointer;"><input type="checkbox" id="useRevealTimer" onchange="initTimers()"> ⏱️ 정답 자동 열기</label>
+          <select id="revealSecs" onchange="initTimers()">
+            <option value="1">1초</option>
+            <option value="2">2초</option>
+            <option value="3" selected>3초</option>
+            <option value="4">4초</option>
+            <option value="5">5초</option>
+            <option value="6">6초</option>
+            <option value="7">7초</option>
+            <option value="8">8초</option>
+            <option value="9">9초</option>
+            <option value="10">10초</option>
+          </select>
+          <span id="revealCountdown" class="timer-badge badge-reveal-cd">-</span>
+        </div>
+
+        <div class="control-box timer-next-box">
+          <label style="cursor:pointer;"><input type="checkbox" id="useNextTimer" onchange="initTimers()"> ⏭️ 다음 문제 자동 넘김</label>
+          <select id="nextSecs" onchange="initTimers()">
+            <option value="1">1초</option>
+            <option value="2" selected>2초</option>
+            <option value="3">3초</option>
+            <option value="4">4초</option>
+            <option value="5">5초</option>
+            <option value="6">6초</option>
+            <option value="7">7초</option>
+            <option value="8">8초</option>
+            <option value="9">9초</option>
+            <option value="10">10초</option>
+          </select>
+          <span id="nextCountdown" class="timer-badge badge-next-cd">-</span>
+        </div>
+
+        <div class="control-box order-box">
+          <span>정렬:</span>
+          <button id="btnShuffle" class="btn-order-toggle active" onclick="shuffleCurrentList()">🔀 셔플</button>
+          <button id="btnNumeric" class="btn-order-toggle" onclick="sortCurrentListNumeric()">🔢 번호순</button>
+        </div>
+
+        <div class="control-box">
+          <label for="imgScale">🔍 크기:</label>
+          <input type="range" id="imgScale" min="0.5" max="3.0" step="0.1" value="1.0" oninput="changeImgSize(this.value)">
+        </div>
+      </div>
+
+      <div class="word-box" id="display">
+        <div id="statusTag"></div>
+        <div id="wordContent">학습할 단어를 선택하거나 시작 버튼을 누르세요</div>
+      </div>
+      
+      <div class="btn-group">
+        <button class="btn-mark-known" onclick="markCurrent('known')">아는 문제 [1/A]</button>
+        <button class="btn-mark-unknown" onclick="markCurrent('unknown')">모르는 문제 [2/S]</button>
+        <button class="btn-mark-review" onclick="markCurrent('review')">재확인 [3/D]</button>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-prev" onclick="prevWord()">이전 [Q]</button>
+        <button class="btn-reveal" onclick="toggleAnswer()">정답 [Space/W]</button>
+        <button class="btn-next" onclick="nextWord()">다음 [E]</button>
+      </div>
+
+      <button class="btn-start" onclick="startLearning()">▶️ 처음부터 새로 학습 시작 (셔플) [N]</button>
+      <button class="btn-full-mode" id="btnFullMode" onclick="returnToFullMode()" style="display: none;">🏠 전체 모드로 돌아가기 [O]</button>
+      <button class="btn-review-mode" id="btnReviewMode" onclick="startReviewMode()">✏️ 오답노트 풀기 (모름/재확인) [O]</button>
+      <button class="btn-pause" onclick="togglePauseModal()">⏸️ 중간 결과 및 미체크 문제 확인 [P]</button>
+      <button class="btn-reset" onclick="resetAll()">현재 카테고리 마킹 초기화 및 셔플 [R]</button>
+
+      <div class="shortcut-info">
+        ⌨️ <b>단축키 안내</b><br>
+        • <b>1 / A</b>: 아는 문제 | <b>2 / S</b>: 모르는 문제 | <b>3 / D</b>: 재확인 필요<br>
+        • <b>Space / W</b>: 정답/뜻 보기 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <b>Q / E</b>: 이전 / 다음 단어<br>
+        • <b>P</b>: 중간 결과 확인 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <b>R</b>: 현재 카테고리 초기화<br>
+        • <b>N</b>: 새로 학습 시작 (셔플) &nbsp;&nbsp;&nbsp;| <b>O</b>: 오답/전체 모드 전환
+      </div>
+    </div>
+  </div>
+
+  <!-- 출처 표기 반응형 푸터 -->
+  <footer class="source-footer">
+    <div class="footer-container">
+      <p class="source-text">
+        본 자료에 수록된 수어 단어명, 동작 해설, 영상 및 사진 자료는 
+        <strong>국립국어원 한국수어사전</strong>의 공공저작물을 활용하여 제작되었습니다.
+      </p>
+      <div class="badge-wrapper">
+        <span class="kogl-badge">공공누리 제1유형: 출처표시</span>
+        <a href="https://sldict.korean.go.kr" target="_blank" rel="noopener noreferrer" class="source-link">
+          국립국어원 한국수어사전 바로가기 &rarr;
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <div class="modal-overlay" id="pauseModal">
+    <div class="modal-content">
+      <h2>📊 중간 학습 결과</h2>
+      <div class="modal-grid">
+        <div>• 전체 단어: <b id="mTotal">0</b>개</div>
+        <div>• 체크 완료: <b id="mChecked">0</b>개</div>
+        <div>• 아는 단어: <b id="mKnown" style="color:#16a34a;">0</b>개</div>
+        <div>• 모르는 단어: <b id="mUnknown" style="color:#dc2626;">0</b>개</div>
+        <div>• 재확인: <b id="mReview" style="color:#d97706;">0</b>개</div>
+        <div>• 미체크(안풀음): <b id="mUnchecked" style="color:#e11d48;">0</b>개</div>
+      </div>
+
+      <div style="text-align: left; font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: #475569;">
+        📌 풀지 않은(미체크) 문제 목록:
+      </div>
+      <div class="modal-unchecked-box" id="mUncheckedList">-</div>
+
+      <button class="btn-resume" onclick="togglePauseModal()">계속해서 학습하기 [P / Esc]</button>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       CATEGORIES 데이터 객체 구조
+       - urls: { 번호: "상세페이지URL" } -> 정답 창 하단에 바로가기 버튼 생성
+       - videoMap: { 번호: ["동영상URL.mp4"] } -> 정답 창에 수어 비디오 자동 렌더링
+       ========================================================================== */
+    const CATEGORIES = {
+      "cat1": {
+        title: "제12과 나라",
+        disabled: false,
+        hidden: false,
+        rawData: [
+          "1 나라, 국가, 국", "2 외국, 이국, 타국, 해외", "3 동양", "4 서양", "5 아시아",
+          "6 동남아시아", "7 유럽", "8 북아메리카", "9 남아메리카", "10 한국, 대한민국",
+          "11 중국", "12 일본", "13 미국", "14 런던", "15 러시아",
+          "16 캐나다", "17 멕시코", "18 멕시코 II", "19 필리핀", "20 필리핀II",
+          "21 인도", "22 태국", "23 태국II", "24 홍콩", "25 스페인",
+          "26 스위스", "27 이탈리아", "28 핀란드", "29 브라질", "30 도시, 도회, 시",
+          "31 시골, 촌", "32 서울", "33 경기도", "34 부산", "35 대구",
+          "36 인천", "37 광주, 광주시", "38 대전", "39 울산", "40 수원",
+          "41 강원도", "42 춘천", "43 충남", "44 청주", "45 전라남도",
+          "46 전라북도", "47 전주", "48 경남", "49 경상남도, 경남II", "50 경상북도, 경북",
+          "51 한라산"
+        ],
+        imageMap: {
+          1: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151117/211337/IMG000201613_700X466.jpg"],
+          2: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151227/235783/IMG000231073_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151227/235784/IMG000231074_700X466.jpg"
+          ],
+          3: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151217/229703/IMG000223193_700X466.jpg"],
+          4: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151222/232363/IMG000226574_700X466.jpg"],
+          5: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20210104/794536/IMG000358089_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20210104/794537/IMG000358090_700X466.jpg"
+          ],
+          6: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20190726/604576/IMG000202998_700X466.jpg"],
+          7: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151117/211336/IMG000201611_700X466.jpg"],
+          8: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151224/233740/IMG000228378_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151224/233741/IMG000228379_700X466.jpg"
+          ],
+          9: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151219/230683/IMG000224471_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151219/230684/IMG000224472_700X466.jpg"
+          ],
+          10: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151118/212015/IMG000202443_700X466.jpg"],
+          11: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151229/236487/IMG000232002_700X466.jpg"],
+          12: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151211/225777/IMG000218452_700X466.jpg"],
+          13: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20190731/605625/IMG000223799_700X466.jpg"],
+          14: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151219/230768/IMG000224560_700X466.jpg"],
+          15: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151219/230735/IMG000224553_700X466.jpg"],
+          16: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151229/236568/IMG000232088_700X466.jpg"],
+          17: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151218/230131/IMG000223762_700X466.jpg"],
+          18: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151218/230130/IMG000223761_700X466.jpg"],
+          19: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151118/211851/IMG000202268_700X466.jpg"],
+          20: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151118/211850/IMG000202267_700X466.jpg"],
+          21: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151228/235935/IMG000231305_700X466.jpg"],
+          22: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151115/210196/IMG000200228_700X466.jpg"],
+          23: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151115/210195/IMG000200227_700X466.jpg"],
+          24: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151121/213766/IMG000204550_700X466.jpg"],
+          25: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151226/235054/IMG000230062_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151226/235055/IMG000230063_700X466.jpg"
+          ],
+          26: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151226/235041/IMG000230040_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151226/235042/IMG000230041_700X466.jpg"
+          ],
+          27: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151228/235816/IMG000231125_700X466.jpg"],
+          28: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151118/211840/IMG000202252_700X466.jpg"],
+          29: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151221/232118/IMG000226333_700X466.jpg"],
+          30: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151220/231358/IMG000225368_700X466.jpg"],
+          31: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151227/235271/IMG000230413_700X466.jpg"],
+          32: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20210217/813793/IMG000358494_700X466.jpg"],
+          33: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151216/228897/IMG000222156_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151216/228898/IMG000222157_700X466.jpg"
+          ],
+          34: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151223/233346/IMG000227900_700X466.jpg"],
+          35: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151219/230545/IMG000224334_700X466.jpg"],
+          36: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151228/236102/IMG000231499_700X466.jpg"],
+          37: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151216/228632/IMG000221816_700X466.jpg"],
+          38: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151219/230839/IMG000224680_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151219/230840/IMG000224681_700X466.jpg"
+          ],
+          39: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151225/234270/IMG000229116_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151225/234271/IMG000229117_700X466.jpg"
+          ],
+          40: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151222/232466/IMG000226768_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151222/232467/IMG000226769_700X466.jpg"
+          ],
+          41: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151214/227758/IMG000220729_700X466.jpg"],
+          42: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151231/238099/IMG000234044_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151231/238100/IMG000234045_700X466.jpg"
+          ],
+          43: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20160101/238254/IMG000234256_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20160101/238255/IMG000234257_700X466.jpg"
+          ],
+          44: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151230/237243/IMG000232966_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151230/237244/IMG000232967_700X466.jpg"
+          ],
+          45: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151228/236338/IMG000231801_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151228/236339/IMG000231802_700X466.jpg"
+          ],
+          46: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151228/236340/IMG000231804_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151228/236341/IMG000231805_700X466.jpg"
+          ],
+          47: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151229/236594/IMG000232132_700X466.jpg"],
+          48: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151216/229024/IMG000222312_700X466.jpg"],
+          49: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151216/229022/IMG000222310_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151216/229023/IMG000222311_700X466.jpg"
+          ],
+          50: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151216/229025/IMG000222314_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151216/229026/IMG000222315_700X466.jpg"
+          ],
+          51: [
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151118/212037/IMG000202477_700X466.jpg",
+            "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151118/212038/IMG000202478_700X466.jpg"
+          ]
+        },
+        descriptions: {
+          1: "두 손의 손가락을 약간 구부려 마주 보게 세워 전후로 약간 흔든다.",
+          2: "손바닥이 밖으로 향하게 편 왼 손등에 오른 손등을 두 번 댔다 뗀 다음, 두 손의 손가락을 약간 구부려 마주 보게 세워 전후로 약간 흔든다.",
+          3: "오른 주먹의 1지를 펴서 끝이 왼쪽으로 향하게 하여 콧등을 스쳐 코 아래로 내린다.",
+          4: "오른 주먹의 1지를 펴서 옆면을 콧대의 위쪽에 댔다가 콧대를 높이 그리며 이동시켜 코밑에 댄다.",
+          5: "오른 주먹의 1지를 펴서 끝이 왼쪽으로 향하게 하여 콧등을 스쳐 코 아래로 내린 후, 오른 주먹의 5지를 펴서 끝이 왼쪽으로 손등이 안쪽으로 향하게 하여 왼쪽으로 한 바퀴 돌린다.",
+          6: "왼 주먹의 2지를 펴서 등이 밖으로 향하게 세우고, 그 등 밑에서 오른손의 1·5지 끝을 맞대어 동그라미를 만들어 손바닥이 밖으로 향하게 하여 천천히 위로 올린 다음, 두 손바닥으로 배를 스쳐 올리고, 오른 주먹의 5지를 펴서 끝이 왼쪽으로 향하게 눕혀 오른쪽으로 한 바퀴 돌린다.",
+          7: "손가락을 접고 손바닥이 밖으로 향하게 세운 오른손을 오른쪽으로 원을 그리며 이동시킨다.",
+          8: "두 주먹을 가슴 앞으로 올려 떠는 동작을 한 다음, 손등이 밖으로 향하게 손가락을 벌려 편 왼손의 5지 바닥에, 손바닥이 밖으로 향하게 손가락을 벌려 편 오른손의 5지 바닥을 댄다.",
+          9: "두 손바닥으로 배를 스쳐 올린 다음, 손등이 밖으로 향하게 편 왼손의 5지 바닥에, 손바닥이 밖으로 향하게 편 오른손의 5지 바닥을 댄다.",
+          10: "오른 손바닥을 반쯤 구부린 다음 오른 손 끝으로 오른쪽 머리 윗쪽에 한 번 대고 관자놀이에 한 번 댄 후에, 두 손의 손가락을 약간 구부려 마주 보게 세워 전후로 약간 흔든다.",
+          11: "오른 주먹의 1·5지를 펴서 오른쪽 귓불을 잡은 다음, 오른 손가락을 벌려 약간 구부려 끝으로 오른쪽 가슴을 두 번 스쳐 내린다.",
+          12: "오른 주먹의 1, 5지를 펴서 오른쪽 볼을 잡고 스쳐낸다.",
+          13: "오른 주먹의 1·2지를 펴서 눈 밑에 대고 교대로 움직인다.",
+          14: "오른손의 3·4지를 접고 1·2·5지를 펴서 턱밑에 대고 오른쪽으로 이동시킨 다음, 오른 주먹의 1·2·3지를 펴서 끝 바닥을 턱에 댄다.",
+          15: "오른 주먹의 1지를 펴서 세워 이마 오른쪽에 댔다가 뒤로 반원을 그리며 돌린다.",
+          16: "5지를 펴서 세운 오른 주먹의 바닥을 오른쪽 가슴에 댄다.",
+          17: "손등이 밖으로 향하게 1·2지를 편 두 주먹을 ‘X’자로 맞댔다가 1·2지를 구부리며 어깨 넓이로 벌린다.",
+          18: "오른 주먹의 1·2·3지를 붙여 펴서 끝 바닥을 이마에 댔다가 밖으로 뒤집어 올린다.",
+          19: "오른 손을 펴서 손끝이 위로 손바닥이 입으로 향하게 하여, 내민 혀 앞에서 왼쪽으로 두 번 돌린다.",
+          20: "오른 주먹의 1·2·5지를 펴서 5지를 2지에 대고 2지 끝이 아래로 향하게 하여 왼 손등 위쪽에서 작은 원을 그린 다음 왼 손등에 내려놓는다.",
+          21: "오른 주먹의 5지를 펴서 바닥이 위로 향하게 하여 이마 중앙에 대고 위로 올린다.",
+          22: "양손 각각 2·5지 끝을 맞대어 동그라미를 만들어 오른손은 오른쪽 어깨 앞에 왼손은 왼쪽 배 앞에 위치하여 손목을 두 번 돌린다.",
+          23: "오른 주먹의 1지를 펴서 옆면을 콧등에 댔다가 밖으로 내린다.",
+          24: "오른 주먹의 1·2지를 펴서 끝이 콧구멍을 향하게 하여 밀어 올리는 동작을 두 번 반복한다.",
+          25: "두 주먹의 1·5지를 펴서 5지 끝을 양쪽 관자놀이에 대고 세운 다음, 두 손으로 케이프(붉은천)를 잡고 좌우로 흔드는 동작을 한다.",
+          26: "오른 주먹의 1지를 펴서 끝으로 치아를 가리키고, 두 주먹의 1지로 ‘+’자 모양을 만들어 이마에 댄다.",
+          27: "오른 주먹을 머리 오른쪽에, 왼 주먹을 턱 오른쪽에 대고 손목을 돌린다.",
+          28: "오른 주먹의 1지를 펴서 약간 구부려 끝 바닥을 턱에 두 번 댄다.",
+          29: "둥글게 구부린 왼손을 모로 세우고 그 안에 오른 주먹의 1지를 펴서 넣어 돌린다.",
+          30: "손끝이 밖으로 향하게 모로 세운 두 손을 맞댔다가 오른손만 위로 올린다.",
+          31: "손바닥이 아래로 향한 왼 손등에 ‘+’자 모양이 되게 오른 손바닥을 대고 손가락을 상하로 흔든다.",
+          32: "오른 주먹의 1·2·3지를 조금 구부려 끝 바닥을 턱에 댄다.",
+          33: "오른 주먹의 1·2·3지를 펴서 끝 바닥을 턱에 댄 다음, 손끝이 밖으로 향하게 모로 세운 두 손을 마주 보게 하여 좌우로 움직이며 밖으로 내민다.",
+          34: "두 주먹의 1·5지를 펴서 바닥이 안으로 향하게 하고, 오른 주먹의 1지로 왼 주먹의 1지 위를 두 번 두드린다.",
+          35: "왼 주먹을 오른 손바닥으로 밖으로 감싸 돌린다.",
+          36: "왼 주먹의 1·5지를 펴서 1지 끝이 아래로 향하게 거꾸로 세우고, 그 오른쪽에 오른 주먹의 1·2지를 펴서 등이 밖으로 향하게 모로 세운 다음, 오른 주먹의 1·2·3지를 펴서 등이 안으로 향하게 세워 아래로 내린다.",
+          37: "오른 주먹의 1·2·3지를 펴서 구부려 바닥이 밖으로 향하게 세웠다가 펴면서 아래로 내린다.",
+          38: "오른 주먹의 1·5지를 펴서 등이 밖으로 향하게 하여 왼쪽에서 오른쪽으로 이동시킨 다음, 두 주먹의 1·2·3지를 펴서 바닥이 아래로 향하게 포개어 ‘田’(전)자 모양이 되게 한다.",
+          39: "오른 손바닥을 오른쪽 볼에 댔다가 떼면서 흔들어 올린 다음, 오른 주먹의 2지를 펴서 등이 밖으로 향하게 세운다.",
+          40: "오른 주먹의 1·5지를 펴서 구부려 입으로 약간 기울여 올린 다음, 손바닥이 아래로 향하게 반쯤 구부린 오른손을 가슴 앞에서 약간 내리다가 멈춘다.",
+          41: "왼 주먹의 2지를 펴서 등이 밖으로 향하게 세우고, 손바닥이 위로 향하게 편 오른손을 왼 손목 밑에서 오른쪽 아래로 조금씩 흔들며 내린다.",
+          42: "두 손바닥으로 배를 스쳐 올린 다음, 오른 주먹의 1·2·3지를 펴서 바닥이 밖으로 향하게 세웠다가 등이 위로 끝이 밖으로 향하게 내린다.",
+          43: "4·5지를 펴서 세운 오른 주먹의 바닥을 이마에 댄 다음, 두 손바닥으로 배를 스쳐 올린다.",
+          44: "오른손을 펴서 손등이 밖으로 향하게 세워 오른쪽에서 왼쪽으로 이동시킨 다음, 왼 주먹의 1·2·3지를 펴서 등이 밖으로 향하게 세우고, 오른 주먹의 1지를 펴서 끝으로 왼 손가락을 왼쪽에서 오른쪽으로 긋는다.",
+          45: "두 손의 손끝을 맞대고 좌우로 비스듬히 세웠다가 양옆으로 비스듬히 내린 다음, 두 손바닥으로 배를 스쳐 올린다.",
+          46: "두 손의 손끝을 맞대고 좌우로 비스듬히 세웠다가 양옆으로 비스듬히 내린 다음, 두 주먹을 가슴 앞으로 올려 떠는 동작을 한다.",
+          47: "손끝을 맞대고 좌우로 비스듬히 세운 두 손을 양옆으로 비스듬히 내린다.",
+          48: "왼 주먹의 1·5지를 펴서 1지 끝이 오른쪽으로 등이 밖으로 향하게 하고, 오른주먹의 1·5지를 펴서 1지를 왼 주먹의 5지에 5지를 왼 주먹의 1지에 댄다.",
+          49: "5지를 펴서 밖으로 구부린 왼 주먹 등을 손끝이 왼쪽으로 향하게 편 오른 손바닥으로 두 번 두드린 다음, 두 손을 펴서 손가락이 아래를 향하게 하여 배에 댔다가 위로 스쳐 올린다.",
+          50: "5지를 펴서 밖으로 구부린 왼 주먹 등을 손끝이 왼쪽으로 향하게 편 오른 손바닥으로 두 번 두드린 다음, 두 주먹을 앞으로 올려 떠는 동작을 한다.",
+          51: "왼 주먹의 2지를 펴서 등이 밖으로 향하게 세우고, 그 오른쪽 밑에 손바닥이 위로 향하게 편 오른손을 대고 1지 쪽으로 돌린 다음, 오른 주먹의 2지를 펴서 등이 밖으로 향하게 세운다."
+        },
+        combinations: {},
+
+        /* 1. 단어별 사전 웹페이지 URL 항목 */
+        urls: {
+          1: "",
+          2: ""
+        },
+
+        /* 2. 단어별 수어 MP4 동영상 주소 항목 */
+        videoMap: {
+          1: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191021/629706/MOV000235647_700X466.mp4"],
+          2: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191016/628286/MOV000256923_700X466.mp4"],
+          3: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20220801/1004863/MOV000359735_700X466.mp4"],
+          4: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191010/626192/MOV000253274_700X466.mp4"],
+          5: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20201211/785495/MOV000357141_700X466.mp4"],
+          6: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221014/1040331/MOV000360733_700X466.mp4"],
+          7: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20200824/735100/MOV000235645_700X466.mp4"],
+          8: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221019/1042303/MOV000360952_700X466.mp4"],
+          9: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221014/1039865/MOV000360436_700X466.mp4"],
+          10: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20200824/735010/MOV000236287_700X466.mp4"],
+          11: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221107/1049736/MOV000361259_700X466.mp4"],
+          12: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20200811/727778/MOV000247108_700X466.mp4"],
+          13: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20200812/728281/MOV000251004_700X466.mp4"],
+          14: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221014/1040369/MOV000360768_700X466.mp4"],
+          15: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221101/1047377/MOV000361248_700X466.mp4"],
+          16: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221101/1047318/MOV000361221_700X466.mp4"],
+          17: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221017/1041510/MOV000360794_700X466.mp4"],
+          18: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221019/1042418/MOV000360966_700X466.mp4"],
+          19: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221101/1047374/MOV000361245_700X466.mp4"],
+          20: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221101/1047290/MOV000361196_700X466.mp4"],
+          21: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221101/1047350/MOV000361228_700X466.mp4"],
+          22: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221101/1047372/MOV000361243_700X466.mp4"],
+          23: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221101/1047250/MOV000361192_700X466.mp4"],
+          24: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221018/1041782/MOV000360843_700X466.mp4"],
+          25: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221101/1047361/MOV000361238_700X466.mp4"],
+          26: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221024/1044196/MOV000361160_700X466.mp4"],
+          27: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221101/1047365/MOV000361242_700X466.mp4"],
+          28: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221101/1047314/MOV000361217_700X466.mp4"],
+          29: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221017/1041534/MOV000360801_700X466.mp4"],
+          30: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191011/626510/MOV000252311_700X466.mp4"],
+          31: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191029/632178/MOV000256391_700X466.mp4"],
+          32: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20200811/727510/MOV000253280_700X466.mp4"],
+          33: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20240119/1261795/MOV000361398_700X466.mp4"],
+          34: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20240119/1261799/MOV000361402_700X466.mp4"],
+          35: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221014/1039852/MOV000360423_700X466.mp4"],
+          36: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221014/1039909/MOV000360456_700X466.mp4"],
+          37: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221018/1041766/MOV000360828_700X466.mp4"],
+          38: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221013/1039465/MOV000360387_700X466.mp4"],
+          39: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221018/1041764/MOV000360826_700X466.mp4"],
+          40: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221013/1039496/MOV000360413_700X466.mp4"],
+          41: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221013/1039476/MOV000360397_700X466.mp4"],
+          42: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221018/1041855/MOV000360908_700X466.mp4"],
+          43: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221019/1042309/MOV000360958_700X466.mp4"],
+          44: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221018/1041839/MOV000360895_700X466.mp4"],
+          45: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221019/1042424/MOV000360971_700X466.mp4"],
+          46: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221014/1040225/MOV000360663_700X466.mp4"],
+          47: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221014/1040233/MOV000360671_700X466.mp4"],
+          48: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221017/1041543/MOV000360810_700X466.mp4"],
+          49: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221019/1042423/MOV000360970_700X466.mp4"],
+          50: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221019/1042422/MOV000360969_700X466.mp4"],
+          51: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221024/1044057/MOV000361130_700X466.mp4"]
+        }
+      },
+
+      "cat2": {
+        title: "경제활동",
+        disabled: false,
+        hidden: false,
+        rawData: [
+          "1 기금, 기본금"
+        ],
+        imageMap: {
+          1: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151204/221425/IMG000213357_700X466.jpg"]
+        },
+        descriptions: {
+          1: "주먹을 쥐고 세운 왼팔의 팔꿈치 밑에 오른손의 손등을 댄 다음, 오른손의 1·5지 끝을 맞대어 동그라미를 만들어 좌우로 가볍게 두 번 흔든다."
+        },
+        combinations: {},
+        urls: {},
+        videoMap: {}
+      },
+
+      "cat3": {
+        title: "제 14과 (준비중)",
+        disabled: false,
+        hidden: true,
+        rawData: [],
+        imageMap: {},
+        descriptions: {},
+        combinations: {},
+        urls: {},
+        videoMap: {}
+      }
+    };
+
+    let currentCatKey = "cat1";
+    let wordList = [];
+    let fullActiveList = [];  
+    let activeList = [];      
+    let currentIndex = 0;
+    let savedFullIndex = 0;   
+    let isRevealed = false;
+    let isShuffled = true;
+    
+    let currentMode = 'FULL'; 
+    const statusMap = {};
+    
+    const selectedWords = new Set();
+    const hiddenWords = new Set();
+    let isGlobalHidden = false;
+    let isSelectingDrag = null;
+
+    function getWordKey(id) {
+      return `${currentCatKey}_${id}`;
+    }
+
+    // 모바일 높이 조절 바
+    function initMobileResizer() {
+      const resizer = document.getElementById('dragResizer');
+      const sidebar = document.querySelector('.sidebar');
+      if (!resizer || !sidebar) return;
+
+      let startY = 0;
+      let startHeight = 0;
+      let isDragging = false;
+
+      function onStart(clientY) {
+        if (window.innerWidth > 768) return;
+        isDragging = true;
+        startY = clientY;
+        startHeight = sidebar.getBoundingClientRect().height;
+        resizer.classList.add('dragging');
+        document.body.style.userSelect = 'none';
+      }
+
+      function onMove(clientY) {
+        if (!isDragging) return;
+        const deltaY = clientY - startY;
+        let newHeight = startHeight + deltaY;
+        const minH = 140;
+        const maxH = window.innerHeight * 0.75;
+        newHeight = Math.max(minH, Math.min(newHeight, maxH));
+        sidebar.style.height = `${newHeight}px`;
+      }
+
+      function onEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        resizer.classList.remove('dragging');
+        document.body.style.userSelect = '';
+      }
+
+      resizer.addEventListener('mousedown', (e) => {
+        onStart(e.clientY);
+        const onMouseMove = (ev) => onMove(ev.clientY);
+        const onMouseUp = () => {
+          onEnd();
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+        };
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      });
+
+      resizer.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) onStart(e.touches[0].clientY);
+      }, { passive: true });
+
+      window.addEventListener('touchmove', (e) => {
+        if (isDragging && e.touches.length === 1) onMove(e.touches[0].clientY);
+      }, { passive: true });
+
+      window.addEventListener('touchend', onEnd);
+      window.addEventListener('touchcancel', onEnd);
+    }
+
+    // 카테고리 드롭다운 초기화
+    function initCategorySelector() {
+      const select = document.getElementById('catSelect');
+      select.innerHTML = '';
+      let firstAvailableKey = null;
+
+      for (const key in CATEGORIES) {
+        const cat = CATEGORIES[key];
+        if (cat.hidden) continue;
+
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = cat.title;
+
+        if (cat.disabled) {
+          opt.disabled = true;
+          opt.textContent += " (비활성화)";
+        } else if (!firstAvailableKey) {
+          firstAvailableKey = key;
+        }
+
+        select.appendChild(opt);
+      }
+
+      if (!CATEGORIES[currentCatKey] || CATEGORIES[currentCatKey].hidden || CATEGORIES[currentCatKey].disabled) {
+        currentCatKey = firstAvailableKey || Object.keys(CATEGORIES)[0];
+      }
+      select.value = currentCatKey;
+    }
+
+    function changeCategory(catKey) {
+      clearAllTimers();
+      currentCatKey = catKey;
+      loadCategoryData();
+    }
+
+    function loadCategoryData() {
+      const cat = CATEGORIES[currentCatKey] || { rawData: [] };
+      wordList = (cat.rawData || []).map(item => {
+        const match = item.match(/^(\d+)\s*(.*)/);
+        return match ? { id: parseInt(match[1]), text: match[2] } : { id: 0, text: item };
+      });
+      
+      fullActiveList = [...wordList];
+      if (isShuffled) shuffleArray(fullActiveList);
+      activeList = [...fullActiveList];
+      currentIndex = 0;
+      savedFullIndex = 0;
+      currentMode = 'FULL';
+      selectedWords.clear();
+      hiddenWords.clear();
+      isGlobalHidden = false;
+      const ghc = document.getElementById('globalHideCheck');
+      if (ghc) ghc.checked = false;
+      
+      updateOrderButtonUI();
+      renderSidebar();
+      updateCard();
+    }
+
+    function init() {
+      initCategorySelector();
+      loadCategoryData();
+      initMobileResizer();
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    function shuffleCurrentList() {
+      if (activeList.length === 0) return;
+      clearAllTimers();
+      shuffleArray(activeList);
+      currentIndex = 0;
+      isShuffled = true;
+      updateOrderButtonUI();
+      updateCard();
+      renderSidebar();
+    }
+
+    function sortCurrentListNumeric() {
+      if (activeList.length === 0) return;
+      clearAllTimers();
+      activeList.sort((a, b) => a.id - b.id);
+      currentIndex = 0;
+      isShuffled = false;
+      updateOrderButtonUI();
+      updateCard();
+      renderSidebar();
+    }
+
+    function updateOrderButtonUI() {
+      const btnShuf = document.getElementById('btnShuffle');
+      const btnNum = document.getElementById('btnNumeric');
+      if (btnShuf && btnNum) {
+        if (isShuffled) {
+          btnShuf.className = 'btn-order-toggle active';
+          btnNum.className = 'btn-order-toggle';
+        } else {
+          btnShuf.className = 'btn-order-toggle';
+          btnNum.className = 'btn-order-toggle active';
+        }
+      }
+    }
+
+    // 타이머 엔진
+    let revealTimerId = null;
+    let nextTimerId = null;
+    let revealTimeLeft = 0;
+    let nextTimeLeft = 0;
+
+    function clearAllTimers() {
+      if (revealTimerId) clearInterval(revealTimerId);
+      if (nextTimerId) clearInterval(nextTimerId);
+      revealTimerId = null;
+      nextTimerId = null;
+      const rCd = document.getElementById('revealCountdown');
+      const nCd = document.getElementById('nextCountdown');
+      if (rCd) rCd.innerText = '-';
+      if (nCd) nCd.innerText = '-';
+    }
+
+    function initTimers() {
+      clearAllTimers();
+      if (activeList.length === 0) return;
+      const useReveal = document.getElementById('useRevealTimer').checked;
+      const useNext = document.getElementById('useNextTimer').checked;
+      const rCd = document.getElementById('revealCountdown');
+      const nCd = document.getElementById('nextCountdown');
+
+      if (!isRevealed) {
+        if (useReveal) {
+          revealTimeLeft = parseInt(document.getElementById('revealSecs').value) || 3;
+          rCd.innerText = `${revealTimeLeft}초`;
+          revealTimerId = setInterval(() => {
+            revealTimeLeft--;
+            if (revealTimeLeft > 0) {
+              rCd.innerText = `${revealTimeLeft}초`;
+            } else {
+              clearInterval(revealTimerId);
+              revealTimerId = null;
+              rCd.innerText = '열림';
+              toggleAnswer(true);
+            }
+          }, 1000);
+        }
+
+        if (!useReveal && useNext) {
+          startNextCountdown();
+        }
+      } else {
+        if (rCd) rCd.innerText = '열림';
+        if (useNext) {
+          startNextCountdown();
+        }
+      }
+    }
+
+    function startNextCountdown() {
+      if (nextTimerId) clearInterval(nextTimerId);
+      const nCd = document.getElementById('nextCountdown');
+      nextTimeLeft = parseInt(document.getElementById('nextSecs').value) || 2;
+      nCd.innerText = `${nextTimeLeft}초`;
+
+      nextTimerId = setInterval(() => {
+        nextTimeLeft--;
+        if (nextTimeLeft > 0) {
+          nCd.innerText = `${nextTimeLeft}초`;
+        } else {
+          clearInterval(nextTimerId);
+          nextTimerId = null;
+          nCd.innerText = '-';
+          if (currentIndex < activeList.length - 1) {
+            nextWord();
+          } else {
+            alert("🎉 마지막 단어입니다! 해당 과의 학습이 완료되었습니다.");
+          }
+        }
+      }, 1000);
+    }
+
+    function updateSidebarBadge(id) {
+      const itemElem = document.getElementById(`side-item-${id}`);
+      if (itemElem) {
+        const badge = itemElem.querySelector('.sidebar-badge');
+        if (badge) {
+          const st = statusMap[getWordKey(id)] || 'none';
+          const badgeLabel = st === 'known' ? '완료' : st === 'unknown' ? '모름' : st === 'review' ? '재확인' : '미체크';
+          badge.className = `sidebar-badge badge-${st}`;
+          badge.innerText = badgeLabel;
+        }
+      }
+    }
+
+    function cycleStatus(id, event) {
+      if (event) event.stopPropagation();
+      const key = getWordKey(id);
+      const currentStatus = statusMap[key] || 'none';
+      let nextStatus = 'known';
+      if (currentStatus === 'known') nextStatus = 'unknown';
+      else if (currentStatus === 'unknown') nextStatus = 'review';
+      else if (currentStatus === 'review') nextStatus = 'none';
+
+      if (nextStatus === 'none') delete statusMap[key];
+      else statusMap[key] = nextStatus;
+
+      updateSidebarBadge(id);
+      updateStats();
+
+      if (activeList[currentIndex]?.id === id) {
+        const tagElem = document.getElementById('statusTag');
+        tagElem.className = `status-tag tag-${nextStatus}`;
+        tagElem.innerText = nextStatus === 'known' ? '아는 문제' : nextStatus === 'unknown' ? '모르는 문제' : nextStatus === 'review' ? '재확인' : '';
+      }
+    }
+
+    function toggleGlobalHide(state) {
+      isGlobalHidden = state;
+      if (isGlobalHidden) {
+        wordList.forEach(w => hiddenWords.add(w.id));
+      } else {
+        hiddenWords.clear();
+      }
+      renderSidebar();
+    }
+
+    function toggleHideWord(id, event) {
+      if (event) event.stopPropagation();
+      if (hiddenWords.has(id)) hiddenWords.delete(id);
+      else hiddenWords.add(id);
+      renderSidebar();
+    }
+
+    function selectAllFiltered() {
+      const query = (document.getElementById('searchInput')?.value || '').toLowerCase();
+      wordList.forEach(w => {
+        if (!query || w.text.toLowerCase().includes(query)) selectedWords.add(w.id);
+      });
+      renderSidebar();
+    }
+
+    function deselectAllFiltered() {
+      const query = (document.getElementById('searchInput')?.value || '').toLowerCase();
+      wordList.forEach(w => {
+        if (!query || w.text.toLowerCase().includes(query)) selectedWords.delete(w.id);
+      });
+      renderSidebar();
+    }
+
+    function handleMouseDown(e, id) {
+      if (e.target.tagName === 'BUTTON' || e.target.classList.contains('sidebar-badge')) return;
+      const cb = document.getElementById(`cb-${id}`);
+      isSelectingDrag = !cb.checked;
+      cb.checked = isSelectingDrag;
+      updateSet(id, isSelectingDrag);
+    }
+
+    function handleMouseEnter(e, id) {
+      if (e.buttons === 1 && isSelectingDrag !== null) { 
+        const cb = document.getElementById(`cb-${id}`);
+        cb.checked = isSelectingDrag;
+        updateSet(id, isSelectingDrag);
+      }
+    }
+
+    function updateSet(id, state) {
+      if(state) selectedWords.add(id);
+      else selectedWords.delete(id);
+    }
+
+    window.addEventListener('mouseup', () => { isSelectingDrag = null; });
+
+    function jumpToWord(id) {
+      clearAllTimers();
+      const idx = activeList.findIndex(w => w.id === id);
+      if (idx !== -1) {
+        currentIndex = idx;
+        updateCard();
+      } else {
+        if(confirm("현재 학습 목록에 없는 단어입니다. 전체 모드로 전환하여 해당 단어로 이동할까요?")) {
+           returnToFullMode();
+           const fullIdx = activeList.findIndex(w => w.id === id);
+           if(fullIdx !== -1) {
+             currentIndex = fullIdx;
+             updateCard();
+           }
+        }
+      }
+    }
+
+    function studySelected() {
+      if (selectedWords.size === 0) {
+        alert("선택된 단어가 없습니다. 단어를 체크해주세요.");
+        return;
+      }
+      clearAllTimers();
+      if (currentMode === 'FULL') savedFullIndex = currentIndex; 
+      
+      currentMode = 'CUSTOM';
+      activeList = wordList.filter(w => selectedWords.has(w.id));
+      if (isShuffled) shuffleArray(activeList);
+      currentIndex = 0;
+      updateCard();
+    }
+
+    function markCurrent(type) {
+      if (activeList.length === 0) return;
+      const current = activeList[currentIndex];
+      statusMap[getWordKey(current.id)] = type;
+
+      const tagElem = document.getElementById('statusTag');
+      tagElem.className = `status-tag tag-${type}`;
+      tagElem.innerText = type === 'known' ? '아는 문제' : type === 'unknown' ? '모르는 문제' : type === 'review' ? '재확인' : '';
+
+      updateSidebarBadge(current.id);
+      updateStats();
+      nextWord();
+    }
+
+    function nextWord() {
+      clearAllTimers();
+      if (currentIndex < activeList.length - 1) {
+        currentIndex++;
+        updateCard();
+      }
+    }
+
+    function prevWord() {
+      clearAllTimers();
+      if (currentIndex > 0) {
+        currentIndex--;
+        updateCard();
+      }
+    }
+
+    function updateStats() {
+      let known = 0, unknown = 0, review = 0, unchecked = 0;
+      wordList.forEach(w => {
+        const st = statusMap[getWordKey(w.id)];
+        if (st === 'known') known++;
+        else if (st === 'unknown') unknown++;
+        else if (st === 'review') review++;
+        else unchecked++;
+      });
+
+      document.getElementById('cntKnown').innerText = known;
+      document.getElementById('cntUnknown').innerText = unknown;
+      document.getElementById('cntReview').innerText = review;
+      document.getElementById('sideUncheckedCnt').innerText = unchecked;
+
+      document.getElementById('mTotal').innerText = wordList.length;
+      document.getElementById('mChecked').innerText = wordList.length - unchecked;
+      document.getElementById('mKnown').innerText = known;
+      document.getElementById('mUnknown').innerText = unknown;
+      document.getElementById('mReview').innerText = review;
+      document.getElementById('mUnchecked').innerText = unchecked;
+
+      const uncheckedList = wordList.filter(w => !statusMap[getWordKey(w.id)]).map(w => w.id + '번(' + w.text.split(',')[0] + ')');
+      document.getElementById('mUncheckedList').innerText = uncheckedList.length ? uncheckedList.join(', ') : '없음 (전부 체크 완료)';
+    }
+
+    function startLearning() {
+      if (wordList.length === 0) {
+        alert("현재 카테고리에 등록된 단어가 없습니다.");
+        return;
+      }
+      if (confirm("새로운 셔플로 전체 학습을 시작하시겠습니까? (기존 채점 상태는 유지됩니다)")) {
+        clearAllTimers();
+        fullActiveList = [...wordList];
+        shuffleArray(fullActiveList);
+        activeList = [...fullActiveList];
+        currentIndex = 0;
+        savedFullIndex = 0;
+        currentMode = 'FULL';
+        isShuffled = true;
+        updateOrderButtonUI();
+        updateCard();
+        renderSidebar();
+      }
+    }
+
+    function startReviewMode() {
+      const targets = wordList.filter(w => {
+        const st = statusMap[getWordKey(w.id)];
+        return st === 'unknown' || st === 'review';
+      });
+      if (targets.length === 0) {
+        alert("모르는 문제나 재확인할 문제가 없습니다.");
+        return;
+      }
+      clearAllTimers();
+      if (currentMode === 'FULL') savedFullIndex = currentIndex; 
+      
+      currentMode = 'REVIEW';
+      activeList = [...targets];
+      if (isShuffled) shuffleArray(activeList);
+      currentIndex = 0;
+      updateCard();
+    }
+
+    function returnToFullMode() {
+      clearAllTimers();
+      currentMode = 'FULL';
+      activeList = [...fullActiveList];
+      currentIndex = Math.min(savedFullIndex, activeList.length - 1);
+      updateCard();
+    }
+
+    function updateCard() {
+      const cat = CATEGORIES[currentCatKey] || { title: "과목 선택" };
+      const modeBadge = document.getElementById('modeName');
+      const btnFullMode = document.getElementById('btnFullMode');
+      const btnReviewMode = document.getElementById('btnReviewMode');
+      const wordBox = document.getElementById('display');
+
+      if (activeList.length === 0) {
+        wordBox.innerHTML = `
+          <div id="statusTag"></div>
+          <div id="wordContent" style="color: #64748b; font-size: 1.1rem; line-height: 1.6;">
+            📂 <b>${cat.title}</b><br>
+            등록된 단어가 없습니다.<br>
+            코드 내 <code>CATEGORIES</code> 객체에 단어를 추가해주세요.
+          </div>
+        `;
+        document.getElementById('progress').innerText = "단어 0 / 0";
+        modeBadge.innerText = `${cat.title} | 비어있음`;
+        btnFullMode.style.display = 'none';
+        btnReviewMode.style.display = 'none';
+        updateStats();
+        return;
+      }
+
+      const current = activeList[currentIndex];
+      const status = statusMap[getWordKey(current.id)] || 'none';
+      isRevealed = false;
+
+      if (currentMode === 'REVIEW') {
+        modeBadge.innerText = `${cat.title} | 오답노트 복습 모드`;
+        modeBadge.className = "mode-badge review";
+        btnFullMode.style.display = 'block';
+        btnReviewMode.style.display = 'none';
+      } else if (currentMode === 'CUSTOM') {
+        modeBadge.innerText = `${cat.title} | ✨ 맞춤 선택 학습`;
+        modeBadge.className = "mode-badge custom";
+        btnFullMode.style.display = 'block';
+        btnReviewMode.style.display = 'block';
+      } else {
+        modeBadge.innerText = `${cat.title} | 전체 학습 모드`;
+        modeBadge.className = "mode-badge";
+        btnFullMode.style.display = 'none';
+        btnReviewMode.style.display = 'block';
+      }
+
+      document.getElementById('progress').innerText = `단어 ${currentIndex + 1} / ${activeList.length}`;
+
+      wordBox.innerHTML = `
+        <div id="statusTag" class="status-tag tag-${status}">
+          ${status === 'known' ? '아는 문제' : status === 'unknown' ? '모르는 문제' : status === 'review' ? '재확인' : ''}
+        </div>
+        <div id="wordContent">
+          <div style="font-size:1.4rem;">${current.id}. ${current.text}</div>
+        </div>
+      `;
+
+      initTimers();
+      updateStats();
+      updateSidebarActive();
+    }
+
+    // 정답 보기 (웹 링크 & 비디오 포함)
+    function toggleAnswer(isAuto = false) {
+      if (activeList.length === 0) return;
+      const current = activeList[currentIndex];
+      const wordContent = document.getElementById('wordContent');
+      isRevealed = isAuto ? true : !isRevealed;
+
+      if (isRevealed) {
+        if (revealTimerId) clearInterval(revealTimerId);
+        const rCd = document.getElementById('revealCountdown');
+        if (rCd) rCd.innerText = '열림';
+
+        const cat = CATEGORIES[currentCatKey] || {};
+        const descText = cat.descriptions ? cat.descriptions[current.id] : null;
+        const combText = cat.combinations ? cat.combinations[current.id] : null;
+        const imgs = cat.imageMap ? cat.imageMap[current.id] : null;
+        const vids = cat.videoMap ? cat.videoMap[current.id] : null;
+        const linkUrl = cat.urls ? cat.urls[current.id] : null;
+
+        // 사진 렌더링
+        let imgHtml = '';
+        if (imgs && imgs.length > 0) {
+          const imgBoxes = imgs.map(src => `<div class="img-box"><img src="${src}" alt="수어 사진"></div>`).join('');
+          imgHtml = `<div class="img-container">${imgBoxes}</div>`;
+        }
+
+        // 동영상 렌더링
+        let vidHtml = '';
+        if (vids && vids.length > 0) {
+          const vidBoxes = vids.map(src => `
+            <div class="img-box" style="background:#000;">
+              <video src="${src}" autoplay loop muted playsinline controls></video>
+            </div>
+          `).join('');
+          vidHtml = `<div class="img-container">${vidBoxes}</div>`;
+        }
+
+        let infoHtml = '';
+        if (descText) {
+          infoHtml += `<div class="desc-text">📖 <b>동작 설명:</b> ${descText}</div>`;
+        }
+        
+        if (combText) {
+          infoHtml += `<div class="desc-text" style="background: #eef2ff; border-color: #c7d2fe; color: #3730a3; margin-top: 5px;">🔗 <b>단어 결합:</b> ${combText}</div>`;
+        }
+
+        // 웹 링크 버튼 렌더링
+        let linkHtml = '';
+        if (linkUrl) {
+          linkHtml = `
+            <div class="dict-link-wrap">
+              <a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="dict-link-btn">
+                🌐 국립국어원 사전 상세페이지 보기 ↗
+              </a>
+            </div>
+          `;
+        }
+
+        wordContent.innerHTML = `
+          <div style="font-size:1.4rem;">${current.id}. ${current.text}</div>
+          <div class="answer-container">
+            ${infoHtml}
+            ${vidHtml}
+            ${imgHtml}
+            ${linkHtml}
+          </div>
+        `;
+
+        const useNext = document.getElementById('useNextTimer').checked;
+        if (useNext) {
+          startNextCountdown();
+        }
+      } else {
+        wordContent.innerHTML = `<div style="font-size:1.4rem;">${current.id}. ${current.text}</div>`;
+        initTimers();
+      }
+    }
+
+    function renderSidebar() {
+      const sidebarList = document.getElementById('sidebarList');
+      sidebarList.innerHTML = '';
+      const query = (document.getElementById('searchInput')?.value || '').toLowerCase();
+      const orderType = document.getElementById('sidebarOrder')?.value || 'study';
+
+      let displayList = (orderType === 'study') ? [...activeList] : [...wordList];
+
+      displayList.forEach((item) => {
+        if (query && !item.text.toLowerCase().includes(query)) return;
+        
+        const div = document.createElement('div');
+        const isActive = activeList.length > 0 && activeList[currentIndex]?.id === item.id;
+        div.className = `sidebar-item ${isActive ? 'active' : ''}`;
+        div.id = `side-item-${item.id}`;
+
+        const st = statusMap[getWordKey(item.id)] || 'none';
+        const badgeLabel = st === 'known' ? '완료' : st === 'unknown' ? '모름' : st === 'review' ? '재확인' : '미체크';
+
+        const isHidden = hiddenWords.has(item.id);
+        const isChecked = selectedWords.has(item.id) ? 'checked' : '';
+
+        div.innerHTML = `
+          <div class="checkbox-wrap" onmousedown="handleMouseDown(event, ${item.id})" onmouseenter="handleMouseEnter(event, ${item.id})">
+            <input type="checkbox" id="cb-${item.id}" ${isChecked} style="pointer-events: none;">
+          </div>
+          <div class="word-text ${isHidden ? 'blurred' : ''}" onclick="jumpToWord(${item.id})">
+            ${item.id}. ${item.text.split(',')[0]}
+          </div>
+          <button class="eye-btn" onclick="toggleHideWord(${item.id}, event)">
+            ${isHidden ? '🙈' : '👁️'}
+          </button>
+          <span class="sidebar-badge badge-${st}" title="클릭하여 상태 변경" onclick="cycleStatus(${item.id}, event)">${badgeLabel}</span>
+        `;
+        sidebarList.appendChild(div);
+      });
+    }
+
+    function updateSidebarActive() {
+      const activeItem = activeList[currentIndex];
+      if (!activeItem) return;
+      
+      document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+      const activeElem = document.getElementById(`side-item-${activeItem.id}`);
+      
+      if (activeElem) {
+        activeElem.classList.add('active');
+
+        if (window.innerWidth > 768) {
+          const listContainer = document.getElementById('sidebarList');
+          if (listContainer) {
+            const itemOffsetTop = activeElem.offsetTop - listContainer.offsetTop;
+            if (itemOffsetTop < listContainer.scrollTop) {
+              listContainer.scrollTop = itemOffsetTop;
+            } else if (itemOffsetTop + activeElem.clientHeight > listContainer.scrollTop + listContainer.clientHeight) {
+              listContainer.scrollTop = itemOffsetTop + activeElem.clientHeight - listContainer.clientHeight;
+            }
+          }
+        }
+      }
+    }
+
+    function resetAll() {
+      const catTitle = CATEGORIES[currentCatKey]?.title || "현재 과";
+      if (confirm(`[${catTitle}]의 모든 채점 상태를 초기화하고 셔플하시겠습니까?`)) {
+        clearAllTimers();
+        wordList.forEach(w => {
+          delete statusMap[getWordKey(w.id)];
+        });
+        loadCategoryData();
+      }
+    }
+
+    function togglePauseModal() {
+      const modal = document.getElementById('pauseModal');
+      modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function changeImgSize(val) {
+      document.documentElement.style.setProperty('--img-scale', val);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      const key = e.key.toLowerCase();
+      
+      if (key === '1' || key === 'a') markCurrent('known');
+      else if (key === '2' || key === 's') markCurrent('unknown');
+      else if (key === '3' || key === 'd') markCurrent('review');
+      else if (key === ' ' || key === 'w') { e.preventDefault(); toggleAnswer(); }
+      else if (key === 'q') prevWord();
+      else if (key === 'e') nextWord();
+      else if (key === 'p') togglePauseModal();
+      else if (key === 'r') resetAll();
+      else if (key === 'n') startLearning(); 
+      else if (key === 'o') {                
+        if (currentMode === 'FULL') startReviewMode();
+        else returnToFullMode();
+      }
+      else if (key === 'escape') document.getElementById('pauseModal').style.display = 'none';
+    });
+
+    init();
+  </script>
+</body>
+</html>
