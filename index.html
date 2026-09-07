@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>울주군수어교실 중급반 단어 암기장</title>
+  <title>수어 단어 무한 셔플 & 오답노트 암기장</title>
   <style>
     :root {
       --img-scale: 1;
     }
 
-    /* 푸터가 하단에 자연스럽게 배치되도록 세로 플렉스 구조로 설정 */
     body { 
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
       display: flex; 
@@ -102,9 +101,11 @@
 
     /* 메인 카드 */
     .card-container { background: #fff; padding: 24px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); flex: 1; text-align: center; position: relative; min-width: 0; }
-    .mode-badge { display: inline-block; background: #e0e7ff; color: #4338ca; font-weight: 700; padding: 4px 12px; border-radius: 12px; font-size: 0.85rem; margin-bottom: 8px; }
+    .mode-badge-wrap { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .mode-badge { display: inline-block; background: #e0e7ff; color: #4338ca; font-weight: 700; padding: 4px 12px; border-radius: 12px; font-size: 0.85rem; }
     .mode-badge.review { background: #fef3c7; color: #b45309; }
     .mode-badge.custom { background: #dcfce7; color: #15803d; }
+    .mode-badge.vocab { background: #f3e8ff; color: #7e22ce; }
     
     .progress-bar { font-size: 0.95rem; font-weight: 600; color: #64748b; margin-bottom: 12px; }
     
@@ -117,6 +118,11 @@
     .top-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; justify-content: center; }
     .control-box { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.82rem; font-weight: 600; color: #475569; background: #f8fafc; padding: 7px 10px; border-radius: 10px; border: 1px solid #e2e8f0; }
     
+    /* 모드 전환 스위치 박스 */
+    .type-switch-box { background: #f8fafc; border-color: #cbd5e1; }
+    .btn-type-toggle { border: 1px solid #cbd5e1; background: #fff; color: #475569; border-radius: 6px; padding: 4px 9px; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: 0.15s; }
+    .btn-type-toggle.active { background: #6366f1; color: #fff; border-color: #4f46e5; }
+
     .timer-reveal-box { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
     .timer-reveal-box select { border: 1px solid #86efac; border-radius: 4px; outline: none; padding: 2px 4px; font-size: 0.8rem; background: #fff; }
     
@@ -144,7 +150,7 @@
     .img-box { width: calc(260px * var(--img-scale)); height: calc(195px * var(--img-scale)); max-width: 100%; background: #ffffff; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; padding: 6px; box-sizing: border-box; box-shadow: 0 3px 8px rgba(0,0,0,0.06); transition: width 0.2s ease, height 0.2s ease; }
     .img-box img, .img-box video { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
 
-    /* 홈페이지 바로가기 링크 버튼 */
+    /* 국립국어원 사전 웹페이지 바로가기 버튼 */
     .dict-link-wrap { text-align: center; margin-top: 12px; }
     .dict-link-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; background: #4f46e5; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 0.88rem; font-weight: 700; box-shadow: 0 3px 6px rgba(79, 70, 229, 0.25); transition: 0.15s ease; }
     .dict-link-btn:hover { background: #4338ca; transform: translateY(-1px); }
@@ -171,6 +177,132 @@
     .shortcut-info { margin-top: 15px; font-size: 0.78rem; color: #64748b; background: #f8fafc; padding: 10px; border-radius: 8px; text-align: left; line-height: 1.5; }
     .shortcut-info b { color: #334155; }
 
+    /* 환영 / 시작 대시보드 오버레이 */
+    .welcome-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(5px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .welcome-card {
+      background: #ffffff;
+      padding: 34px 28px;
+      border-radius: 24px;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      animation: popIn 0.3s ease-out forwards;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .welcome-badge {
+      display: inline-block;
+      background: #e0e7ff;
+      color: #4338ca;
+      font-size: 0.8rem;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    .welcome-title {
+      margin: 0 0 14px 0;
+      color: #0f172a;
+      font-size: 1.45rem;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+    .welcome-quote-box {
+      background: #f8fafc;
+      border-left: 4px solid #6366f1;
+      padding: 14px 16px;
+      border-radius: 0 12px 12px 0;
+      margin-bottom: 22px;
+      text-align: left;
+    }
+    .welcome-quote {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #334155;
+      font-weight: 600;
+      line-height: 1.6;
+      word-break: keep-all;
+    }
+    .welcome-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 22px;
+      text-align: left;
+    }
+    .welcome-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #475569;
+    }
+    .welcome-mode-select {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn-mode-choice {
+      padding: 12px 10px;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+      background: #f8fafc;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .btn-mode-choice span {
+      font-size: 0.72rem;
+      font-weight: normal;
+      color: #64748b;
+    }
+    .btn-mode-choice.active {
+      border-color: #6366f1;
+      background: #eff6ff;
+      color: #4338ca;
+    }
+    .btn-mode-choice.active span {
+      color: #4f46e5;
+    }
+    .btn-start-app {
+      background: #4f46e5;
+      color: white;
+      width: 100%;
+      padding: 15px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-start-app:hover {
+      background: #4338ca;
+      transform: translateY(-2px);
+    }
+
+    /* 중간 결과 모달 */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
     .modal-content { background: #fff; padding: 24px; border-radius: 20px; width: 90%; max-width: 440px; text-align: center; box-shadow: 0 20px 25px rgba(0,0,0,0.15); }
     .modal-content h2 { margin-top: 0; color: #0f172a; font-size: 1.25rem; }
@@ -178,7 +310,7 @@
     .modal-unchecked-box { background: #fee2e2; border-radius: 8px; padding: 10px; max-height: 100px; overflow-y: auto; text-align: left; font-size: 0.82rem; color: #991b1b; margin-bottom: 15px; word-break: break-all; line-height: 1.4; }
     .btn-resume { background: #6366f1; color: white; width: 100%; padding: 12px; font-size: 0.95rem; }
 
-    /* 출처 표기 반응형 푸터 스타일 */
+    /* 출처 표기 반응형 푸터 */
     .source-footer {
       width: 100%;
       margin-top: auto;
@@ -267,90 +399,39 @@
       .resizer-bar { display: flex; }
       .top-controls { flex-direction: column; align-items: stretch; }
       .control-box { justify-content: space-between; }
-
-    /* 초기 모드 선택 모달 */
-    .start-modal-overlay { 
-      position: fixed; 
-      top: 0; 
-      left: 0; 
-      width: 100vw; 
-      height: 100vh; 
-      background: rgba(15, 23, 42, 0.75); 
-      display: flex; 
-      justify-content: center; 
-      align-items: center; 
-      z-index: 2000; 
-      backdrop-filter: blur(4px);
-    }
-    .start-modal-content { 
-      background: #fff; 
-      padding: 30px 24px; 
-      border-radius: 24px; 
-      width: 90%; 
-      max-width: 420px; 
-      text-align: center; 
-      box-shadow: 0 25px 35px rgba(0,0,0,0.25); 
-    }
-    .start-modal-content h2 { 
-      margin-top: 0; 
-      font-size: 1.35rem; 
-      color: #0f172a; 
-      margin-bottom: 8px; 
-    }
-    .start-modal-content p { 
-      font-size: 0.88rem; 
-      color: #64748b; 
-      margin-bottom: 24px; 
-      line-height: 1.4;
-    }
-    .mode-select-btns { 
-      display: flex; 
-      flex-direction: column; 
-      gap: 12px; 
-    }
-    .btn-mode-card { 
-      padding: 16px; 
-      border-radius: 14px; 
-      border: 2px solid transparent; 
-      text-align: left; 
-      cursor: pointer; 
-      transition: all 0.2s ease; 
-      display: flex; 
-      flex-direction: column; 
-      gap: 4px;
-    }
-    .btn-mode-card:hover { 
-      transform: translateY(-2px); 
-    }
-    .btn-mode-exam { 
-      background: #eff6ff; 
-      border-color: #93c5fd; 
-      color: #1e40af; 
-    }
-    .btn-mode-exam:hover { 
-      background: #dbeafe; 
-    }
-    .btn-mode-dict { 
-      background: #fdf2f8; 
-      border-color: #fbcfe8; 
-      color: #9d174d; 
-    }
-    .btn-mode-dict:hover { 
-      background: #fce7f3; 
-    }
-    .btn-mode-card .mode-title { 
-      font-size: 1.05rem; 
-      font-weight: 800; 
-    }
-    .btn-mode-card .mode-desc { 
-      font-size: 0.8rem; 
-      opacity: 0.85; 
-      font-weight: normal; 
-    }  
     }
   </style>
 </head>
 <body>
+
+  <!-- 첫 접속/새로고침 환영 오버레이 -->
+  <div class="welcome-overlay" id="welcomeOverlay">
+    <div class="welcome-card">
+      <div class="welcome-badge">수어교실 중급반 학습 서포터</div>
+      <h1 class="welcome-title">오늘의 수어 학습을 시작합니다 🤟</h1>
+      
+      <div class="welcome-quote-box">
+        <p class="welcome-quote" id="welcomeMessage">반가워요! 손끝으로 세상과 더 깊이 통하는 시간입니다.</p>
+      </div>
+
+      <div class="welcome-options">
+        <label class="welcome-label">학습 모드 선택</label>
+        <div class="welcome-mode-select">
+          <button type="button" class="btn-mode-choice active" id="btnChoiceTest" onclick="selectInitialStudyType('TEST')">
+            📝 시험 모드
+            <span>단어명 확인 후 정답 열기</span>
+          </button>
+          <button type="button" class="btn-mode-choice" id="btnChoiceVocab" onclick="selectInitialStudyType('VOCAB')">
+            📖 단어장 모드
+            <span>영상·사진 처음부터 공개</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn-start-app" onclick="enterStudyRoom()">단어장 바로 시작하기 ✨</button>
+    </div>
+  </div>
+
   <div class="app-wrapper">
     <!-- 좌측 사이드바 -->
     <div class="sidebar">
@@ -398,7 +479,10 @@
 
     <!-- 우측 학습 카드 -->
     <div class="card-container">
-      <div class="mode-badge" id="modeName">전체 학습 모드</div>
+      <div class="mode-badge-wrap">
+        <div class="mode-badge" id="modeName">전체 학습 모드</div>
+        <div class="mode-badge vocab" id="studyTypeBadge">📝 시험 모드</div>
+      </div>
       <div class="progress-bar" id="progress">단어 0 / 0</div>
       
       <div class="stats-summary">
@@ -409,7 +493,14 @@
 
       <!-- 상단 분리형 제어바 -->
       <div class="top-controls">
-        <div class="control-box timer-reveal-box">
+        <!-- 모드 전환 (시험 모드 vs 단어장 모드) -->
+        <div class="control-box type-switch-box">
+          <span>모드:</span>
+          <button id="btnSwitchTest" class="btn-type-toggle active" onclick="setStudyType('TEST')">📝 시험</button>
+          <button id="btnSwitchVocab" class="btn-type-toggle" onclick="setStudyType('VOCAB')">📖 단어장</button>
+        </div>
+
+        <div class="control-box timer-reveal-box" id="revealTimerBox">
           <label style="cursor:pointer;"><input type="checkbox" id="useRevealTimer" onchange="initTimers()"> ⏱️ 정답 자동 열기</label>
           <select id="revealSecs" onchange="initTimers()">
             <option value="1">1초</option>
@@ -468,7 +559,7 @@
 
       <div class="btn-group">
         <button class="btn-prev" onclick="prevWord()">이전 [Q]</button>
-        <button class="btn-reveal" onclick="toggleAnswer()">정답 [Space/W]</button>
+        <button class="btn-reveal" id="btnReveal" onclick="toggleAnswer()">정답 [Space/W]</button>
         <button class="btn-next" onclick="nextWord()">다음 [E]</button>
       </div>
 
@@ -481,9 +572,9 @@
       <div class="shortcut-info">
         ⌨️ <b>단축키 안내</b><br>
         • <b>1 / A</b>: 아는 문제 | <b>2 / S</b>: 모르는 문제 | <b>3 / D</b>: 재확인 필요<br>
-        • <b>Space / W</b>: 정답/뜻 보기 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <b>Q / E</b>: 이전 / 다음 단어<br>
-        • <b>P</b>: 중간 결과 확인 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <b>R</b>: 현재 카테고리 초기화<br>
-        • <b>N</b>: 새로 학습 시작 (셔플) &nbsp;&nbsp;&nbsp;| <b>O</b>: 오답/전체 모드 전환
+        • <b>Space / W</b>: 정답/뜻 보기(시험 모드) | <b>Q / E</b>: 이전 / 다음 단어<br>
+        • <b>P</b>: 중간 결과 확인 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <b>R</b>: 현재 카테고리 초기화<br>
+        • <b>N</b>: 새로 학습 시작 (셔플) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <b>O</b>: 오답/전체 모드 전환
       </div>
     </div>
   </div>
@@ -504,6 +595,7 @@
     </div>
   </footer>
 
+  <!-- 중간 결과 모달 -->
   <div class="modal-overlay" id="pauseModal">
     <div class="modal-content">
       <h2>📊 중간 학습 결과</h2>
@@ -520,25 +612,6 @@
         📌 풀지 않은(미체크) 문제 목록:
       </div>
       <div class="modal-unchecked-box" id="mUncheckedList">-</div>
-      <!-- 시작 모드 선택 초기화면 모달 -->
-  <div class="start-modal-overlay" id="startModeModal">
-    <div class="start-modal-content">
-      <h2>🤟 수어 학습 모드 선택</h2>
-      <p>원하는 학습 방식을 선택하면 단어장이 시작됩니다.</p>
-      
-      <div class="mode-select-btns">
-        <button class="btn-mode-card btn-mode-exam" onclick="setStudyStyle('EXAM')">
-          <span class="mode-title">📝 시험 모드 (기본)</span>
-          <span class="mode-desc">단어만 먼저 나오고, 정답 버튼(Space/W)을 눌러야 사진/영상이 열립니다.</span>
-        </button>
-
-        <button class="btn-mode-card btn-mode-dict" onclick="setStudyStyle('DICT')">
-          <span class="mode-title">📖 단어장 모드 (사전식)</span>
-          <span class="mode-desc">문제가 열릴 때 정답 설명과 사진·영상이 처음부터 바로 표시됩니다.</span>
-        </button>
-      </div>
-    </div>
-  </div>
 
       <button class="btn-resume" onclick="togglePauseModal()">계속해서 학습하기 [P / Esc]</button>
     </div>
@@ -546,10 +619,21 @@
 
   <script>
     /* ==========================================================================
-       CATEGORIES 데이터 객체 구조
-       - urls: { 번호: "상세페이지URL" } -> 정답 창 하단에 바로가기 버튼 생성
-       - videoMap: { 번호: ["동영상URL.mp4"] } -> 정답 창에 수어 비디오 자동 렌더링
+       10가지 수어교실 중급반 랜덤 응원 문구
        ========================================================================== */
+    const WELCOME_MESSAGES = [
+      "손끝으로 세상과 따뜻하게 마음을 잇는 시간입니다. 중급반 여러분을 환영합니다! 🤟",
+      "표정과 손짓이 풍성해질수록 여러분의 수어도 더욱 깊어집니다. 오늘도 화이팅! ✨",
+      "중급반의 실력은 꾸준한 복습에서 피어납니다. 자연스러운 손길을 위해 오늘도 전진!",
+      "익숙해진 지문자와 단어 위에 자신감을 얹어보세요. 여러분의 손길을 응원합니다. 🌟",
+      "머리로 기억하고, 손과 표정으로 완성하는 수어! 오늘도 멋진 표현 기대할게요.",
+      "농인과 농사회의 진정한 벗으로 한 걸음 더! 즐거운 마음으로 시작해 볼까요? 💡",
+      "중급 도약의 핵심은 디테일한 비수지기호와 매끄러운 연결입니다. 함께 연습해요!",
+      "망설이지 말고 손을 움직여 보세요. 연습한 만큼 여러분의 손끝은 정직하게 답합니다. 👏",
+      "오늘 익힌 수어 단어 하나가 내일의 소중한 대화를 이어줍니다. 즐겁게 학습하세요!",
+      "손끝의 작은 움직임이 누군가에게는 큰 울림이 됩니다. 중급반 여러분, 힘내세요! 🌈"
+    ];
+
     const CATEGORIES = {
       "cat1": {
         title: "제12과 나라",
@@ -604,7 +688,7 @@
           21: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151228/235935/IMG000231305_700X466.jpg"],
           22: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151115/210196/IMG000200228_700X466.jpg"],
           23: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151115/210195/IMG000200227_700X466.jpg"],
-          24: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151121/213766/IMG000204550_700X466.jpg"],
+          24: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151221/213766/IMG000204550_700X466.jpg"],
           25: [
             "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151226/235054/IMG000230062_700X466.jpg",
             "https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20151226/235055/IMG000230063_700X466.jpg"
@@ -729,14 +813,10 @@
           51: "왼 주먹의 2지를 펴서 등이 밖으로 향하게 세우고, 그 오른쪽 밑에 손바닥이 위로 향하게 편 오른손을 대고 1지 쪽으로 돌린 다음, 오른 주먹의 2지를 펴서 등이 밖으로 향하게 세운다."
         },
         combinations: {},
-
-        /* 1. 단어별 사전 웹페이지 URL 항목 */
         urls: {
           1: "",
           2: ""
         },
-
-        /* 2. 단어별 수어 MP4 동영상 주소 항목 */
         videoMap: {
           1: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191021/629706/MOV000235647_700X466.mp4"],
           2: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191016/628286/MOV000256923_700X466.mp4"],
@@ -792,7 +872,7 @@
         }
       },
 
-      "cat2": {
+"cat2": {
         title: "제13과 동물",
         disabled: false,
         hidden: false,
@@ -977,7 +1057,7 @@
       },
 
       "cat3": {
-        title: "식생활 (음식과 식재료)",
+        title: "제15과 음식",
         disabled: false,
         hidden: false,
         rawData: [
@@ -1432,20 +1512,8 @@
           95: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20191016/628111/MOV000250200_700X466.mp4"],
           96: ["https://sldict.korean.go.kr/multimedia/multimedia_files/convert/20221021/1043196/MOV000361088_700X466.mp4"]
         }
-      }
-
-      "cat4": {
-        title: "제 14과 (준비중)",
-        disabled: false,
-        hidden: true,
-        rawData: [],
-        imageMap: {},
-        descriptions: {},
-        combinations: {},
-        urls: {},
-        videoMap: {}
-      }
-
+      },
+      
       "cat5": {
         title: "제 14과 (준비중)",
         disabled: false,
@@ -1456,7 +1524,7 @@
         combinations: {},
         urls: {},
         videoMap: {}
-      }
+      },
 
       "cat6": {
         title: "제 14과 (준비중)",
@@ -1468,9 +1536,9 @@
         combinations: {},
         urls: {},
         videoMap: {}
-      }
+      },
 
-      "cat7": {
+       "cat7": {
         title: "제 14과 (준비중)",
         disabled: false,
         hidden: true,
@@ -1480,7 +1548,22 @@
         combinations: {},
         urls: {},
         videoMap: {}
-      }
+      },
+
+      "cat8": {
+        title: "제 14과 (준비중)",
+        disabled: false,
+        hidden: true,
+        rawData: [],
+        imageMap: {},
+        descriptions: {},
+        combinations: {},
+        urls: {},
+        videoMap: {}
+      },      
+
+
+      
     };
 
     let currentCatKey = "cat1";
@@ -1493,13 +1576,7 @@
     let isShuffled = true;
     
     let currentMode = 'FULL'; 
-    let studyStyle = 'EXAM'; // 'EXAM' (시험모드) 또는 'DICT' (단어장모드)
-
-    function setStudyStyle(style) {
-      studyStyle = style;
-      document.getElementById('startModeModal').style.display = 'none';
-      updateCard();
-    }
+    let studyType = 'TEST'; // 'TEST' (시험 모드) 또는 'VOCAB' (단어장 모드)
     const statusMap = {};
     
     const selectedWords = new Set();
@@ -1509,6 +1586,64 @@
 
     function getWordKey(id) {
       return `${currentCatKey}_${id}`;
+    }
+
+    // 웰컴 랜덤 메시지 초기화
+    function initWelcomeMessage() {
+      const msgElem = document.getElementById('welcomeMessage');
+      if (msgElem) {
+        const randomIndex = Math.floor(Math.random() * WELCOME_MESSAGES.length);
+        msgElem.innerText = WELCOME_MESSAGES[randomIndex];
+      }
+    }
+
+    function selectInitialStudyType(type) {
+      studyType = type;
+      const btnTest = document.getElementById('btnChoiceTest');
+      const btnVocab = document.getElementById('btnChoiceVocab');
+      if (type === 'TEST') {
+        btnTest.classList.add('active');
+        btnVocab.classList.remove('active');
+      } else {
+        btnTest.classList.remove('active');
+        btnVocab.classList.add('active');
+      }
+    }
+
+    function enterStudyRoom() {
+      const overlay = document.getElementById('welcomeOverlay');
+      if (overlay) {
+        overlay.style.display = 'none';
+      }
+      setStudyType(studyType);
+    }
+
+    // 모드 전환 (TEST <-> VOCAB)
+    function setStudyType(type) {
+      studyType = type;
+      const btnTest = document.getElementById('btnSwitchTest');
+      const btnVocab = document.getElementById('btnSwitchVocab');
+      const badge = document.getElementById('studyTypeBadge');
+      const btnRev = document.getElementById('btnReveal');
+      const timerRevealBox = document.getElementById('revealTimerBox');
+
+      if (studyType === 'TEST') {
+        btnTest.className = 'btn-type-toggle active';
+        btnVocab.className = 'btn-type-toggle';
+        badge.innerText = '📝 시험 모드';
+        badge.className = 'mode-badge';
+        btnRev.style.display = 'inline-block';
+        if (timerRevealBox) timerRevealBox.style.display = 'flex';
+      } else {
+        btnTest.className = 'btn-type-toggle';
+        btnVocab.className = 'btn-type-toggle active';
+        badge.innerText = '📖 단어장 모드 (정답 상시 공개)';
+        badge.className = 'mode-badge vocab';
+        btnRev.style.display = 'none';
+        if (timerRevealBox) timerRevealBox.style.display = 'none';
+      }
+
+      updateCard();
     }
 
     // 모바일 높이 조절 바
@@ -1632,11 +1767,10 @@
     }
 
     function init() {
+      initWelcomeMessage();
       initCategorySelector();
       loadCategoryData();
       initMobileResizer();
-      // 초기 진입 시 모달 표시
-      document.getElementById('startModeModal').style.display = 'flex';
     }
 
     function shuffleArray(arr) {
@@ -1682,7 +1816,7 @@
       }
     }
 
-    // 타이머 엔진
+    // 타이머 제어
     let revealTimerId = null;
     let nextTimerId = null;
     let revealTimeLeft = 0;
@@ -1706,6 +1840,11 @@
       const useNext = document.getElementById('useNextTimer').checked;
       const rCd = document.getElementById('revealCountdown');
       const nCd = document.getElementById('nextCountdown');
+
+      if (studyType === 'VOCAB') {
+        if (useNext) startNextCountdown();
+        return;
+      }
 
       if (!isRevealed) {
         if (useReveal) {
@@ -1985,6 +2124,60 @@
       updateCard();
     }
 
+    function getWordDetailHtml(current) {
+      const cat = CATEGORIES[currentCatKey] || {};
+      const descText = cat.descriptions ? cat.descriptions[current.id] : null;
+      const combText = cat.combinations ? cat.combinations[current.id] : null;
+      const imgs = cat.imageMap ? cat.imageMap[current.id] : null;
+      const vids = cat.videoMap ? cat.videoMap[current.id] : null;
+      const linkUrl = cat.urls ? cat.urls[current.id] : null;
+
+      let imgHtml = '';
+      if (imgs && imgs.length > 0) {
+        const imgBoxes = imgs.map(src => `<div class="img-box"><img src="${src}" alt="수어 사진"></div>`).join('');
+        imgHtml = `<div class="img-container">${imgBoxes}</div>`;
+      }
+
+      let vidHtml = '';
+      if (vids && vids.length > 0) {
+        const vidBoxes = vids.map(src => `
+          <div class="img-box" style="background:#000;">
+            <video src="${src}" autoplay loop muted playsinline controls></video>
+          </div>
+        `).join('');
+        vidHtml = `<div class="img-container">${vidBoxes}</div>`;
+      }
+
+      let infoHtml = '';
+      if (descText) {
+        infoHtml += `<div class="desc-text">📖 <b>동작 설명:</b> ${descText}</div>`;
+      }
+      
+      if (combText) {
+        infoHtml += `<div class="desc-text" style="background: #eef2ff; border-color: #c7d2fe; color: #3730a3; margin-top: 5px;">🔗 <b>단어 결합:</b> ${combText}</div>`;
+      }
+
+      let linkHtml = '';
+      if (linkUrl) {
+        linkHtml = `
+          <div class="dict-link-wrap">
+            <a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="dict-link-btn">
+              🌐 국립국어원 사전 상세페이지 보기 ↗
+            </a>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="answer-container">
+          ${infoHtml}
+          ${vidHtml}
+          ${imgHtml}
+          ${linkHtml}
+        </div>
+      `;
+    }
+
     function updateCard() {
       const cat = CATEGORIES[currentCatKey] || { title: "과목 선택" };
       const modeBadge = document.getElementById('modeName');
@@ -2011,7 +2204,6 @@
 
       const current = activeList[currentIndex];
       const status = statusMap[getWordKey(current.id)] || 'none';
-      isRevealed = false;
 
       if (currentMode === 'REVIEW') {
         modeBadge.innerText = `${cat.title} | 오답노트 복습 모드`;
@@ -2032,32 +2224,41 @@
 
       document.getElementById('progress').innerText = `단어 ${currentIndex + 1} / ${activeList.length}`;
 
-      wordBox.innerHTML = `
+      const statusTagHtml = `
         <div id="statusTag" class="status-tag tag-${status}">
           ${status === 'known' ? '아는 문제' : status === 'unknown' ? '모르는 문제' : status === 'review' ? '재확인' : ''}
         </div>
-        <div id="wordContent">
-          <div style="font-size:1.4rem;">${current.id}. ${current.text}</div>
-        </div>
       `;
+
+      if (studyType === 'VOCAB') {
+        // 단어장 모드: 처음부터 정답 오픈
+        isRevealed = true;
+        wordBox.innerHTML = `
+          ${statusTagHtml}
+          <div id="wordContent">
+            <div style="font-size:1.4rem;">${current.id}. ${current.text}</div>
+            ${getWordDetailHtml(current)}
+          </div>
+        `;
+      } else {
+        // 시험 모드: 단어명만 노출
+        isRevealed = false;
+        wordBox.innerHTML = `
+          ${statusTagHtml}
+          <div id="wordContent">
+            <div style="font-size:1.4rem;">${current.id}. ${current.text}</div>
+          </div>
+        `;
+      }
 
       initTimers();
       updateStats();
       updateSidebarActive();
-      // updateCard() 맨 하단 부근
-    initTimers();
-    updateStats();
-    updateSidebarActive();
-
-    // ↓ 아래 3줄 추가
-    if (studyStyle === 'DICT') {
-      toggleAnswer(true);
-    }
     }
 
-    // 정답 보기 (웹 링크 & 비디오 포함)
+    // 정답 토글 (시험 모드 전용)
     function toggleAnswer(isAuto = false) {
-      if (activeList.length === 0) return;
+      if (activeList.length === 0 || studyType === 'VOCAB') return;
       const current = activeList[currentIndex];
       const wordContent = document.getElementById('wordContent');
       isRevealed = isAuto ? true : !isRevealed;
@@ -2067,60 +2268,9 @@
         const rCd = document.getElementById('revealCountdown');
         if (rCd) rCd.innerText = '열림';
 
-        const cat = CATEGORIES[currentCatKey] || {};
-        const descText = cat.descriptions ? cat.descriptions[current.id] : null;
-        const combText = cat.combinations ? cat.combinations[current.id] : null;
-        const imgs = cat.imageMap ? cat.imageMap[current.id] : null;
-        const vids = cat.videoMap ? cat.videoMap[current.id] : null;
-        const linkUrl = cat.urls ? cat.urls[current.id] : null;
-
-        // 사진 렌더링
-        let imgHtml = '';
-        if (imgs && imgs.length > 0) {
-          const imgBoxes = imgs.map(src => `<div class="img-box"><img src="${src}" alt="수어 사진"></div>`).join('');
-          imgHtml = `<div class="img-container">${imgBoxes}</div>`;
-        }
-
-        // 동영상 렌더링
-        let vidHtml = '';
-        if (vids && vids.length > 0) {
-          const vidBoxes = vids.map(src => `
-            <div class="img-box" style="background:#000;">
-              <video src="${src}" autoplay loop muted playsinline controls></video>
-            </div>
-          `).join('');
-          vidHtml = `<div class="img-container">${vidBoxes}</div>`;
-        }
-
-        let infoHtml = '';
-        if (descText) {
-          infoHtml += `<div class="desc-text">📖 <b>동작 설명:</b> ${descText}</div>`;
-        }
-        
-        if (combText) {
-          infoHtml += `<div class="desc-text" style="background: #eef2ff; border-color: #c7d2fe; color: #3730a3; margin-top: 5px;">🔗 <b>단어 결합:</b> ${combText}</div>`;
-        }
-
-        // 웹 링크 버튼 렌더링
-        let linkHtml = '';
-        if (linkUrl) {
-          linkHtml = `
-            <div class="dict-link-wrap">
-              <a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="dict-link-btn">
-                🌐 국립국어원 사전 상세페이지 보기 ↗
-              </a>
-            </div>
-          `;
-        }
-
         wordContent.innerHTML = `
           <div style="font-size:1.4rem;">${current.id}. ${current.text}</div>
-          <div class="answer-container">
-            ${infoHtml}
-            ${vidHtml}
-            ${imgHtml}
-            ${linkHtml}
-          </div>
+          ${getWordDetailHtml(current)}
         `;
 
         const useNext = document.getElementById('useNextTimer').checked;
@@ -2222,7 +2372,12 @@
       if (key === '1' || key === 'a') markCurrent('known');
       else if (key === '2' || key === 's') markCurrent('unknown');
       else if (key === '3' || key === 'd') markCurrent('review');
-      else if (key === ' ' || key === 'w') { e.preventDefault(); toggleAnswer(); }
+      else if (key === ' ' || key === 'w') { 
+        if (studyType === 'TEST') {
+          e.preventDefault(); 
+          toggleAnswer(); 
+        }
+      }
       else if (key === 'q') prevWord();
       else if (key === 'e') nextWord();
       else if (key === 'p') togglePauseModal();
@@ -2232,7 +2387,10 @@
         if (currentMode === 'FULL') startReviewMode();
         else returnToFullMode();
       }
-      else if (key === 'escape') document.getElementById('pauseModal').style.display = 'none';
+      else if (key === 'escape') {
+        const pModal = document.getElementById('pauseModal');
+        if (pModal) pModal.style.display = 'none';
+      }
     });
 
     init();
