@@ -623,7 +623,9 @@
     /* ==========================================================================
        10가지 수어교실 중급반 랜덤 응원 문구
        ========================================================================== */
-    const WELCOME_MESSAGES = [
+    // 표시하고 싶은 순서대로 키 이름을 나열합니다.
+const CATEGORY_ORDER = ["cat1", "cat2", "cat3", "cat4", "cat5", "cat6", "cat7", "cat8", "cat9", "cat10", "cat11", "cat12", "cat13", "cat14", "cat15", "cat16", "cat17", "cat18", "cat19", "cat20"];
+       const WELCOME_MESSAGES = [
       "손끝으로 세상과 따뜻하게 마음을 잇는 시간입니다. 중급반 여러분을 환영합니다! 🤟",
       "표정과 손짓이 풍성해질수록 여러분의 수어도 더욱 깊어집니다. 오늘도 화이팅! ✨",
       "중급반의 실력은 꾸준한 복습에서 피어납니다. 자연스러운 손길을 위해 오늘도 전진!",
@@ -1657,7 +1659,7 @@
       
     };
 
-    let currentCatKey = "cat1";
+    let currentCatKey = "CATEGORY_ORDER";
     let wordList = [];
     let fullActiveList = [];  
     let activeList = [];      
@@ -1798,14 +1800,17 @@
     }
 
     // 카테고리 드롭다운 초기화
-    function initCategorySelector() {
-      const select = document.getElementById('catSelect');
+function initCategorySelector() {
+      const select = document.getElementById('catSelect'); // 원래 쓰시던 ID 유지
       select.innerHTML = '';
       let firstAvailableKey = null;
 
-      for (const key in CATEGORIES) {
+      // CATEGORY_ORDER 가 있으면 지정된 순서대로, 없으면 기존 순서대로 목록 추출
+      const orderList = (typeof CATEGORY_ORDER !== 'undefined') ? CATEGORY_ORDER : Object.keys(CATEGORIES);
+
+      orderList.forEach(key => {
         const cat = CATEGORIES[key];
-        if (cat.hidden) continue;
+        if (!cat || cat.hidden) return;
 
         const opt = document.createElement('option');
         opt.value = key;
@@ -1819,10 +1824,11 @@
         }
 
         select.appendChild(opt);
-      }
+      });
 
+      // 현재 선택된 카테고리가 비활성화이거나 없을 때 첫 번째 사용 가능한 카테고리로 자동 선택
       if (!CATEGORIES[currentCatKey] || CATEGORIES[currentCatKey].hidden || CATEGORIES[currentCatKey].disabled) {
-        currentCatKey = firstAvailableKey || Object.keys(CATEGORIES)[0];
+        currentCatKey = firstAvailableKey || orderList[0];
       }
       select.value = currentCatKey;
     }
